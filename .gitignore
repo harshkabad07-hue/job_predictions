@@ -1,0 +1,4 @@
+*.pkl
+ds_salaries.csv
+__pycache__/
+.streamlit/
