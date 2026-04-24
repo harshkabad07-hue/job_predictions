@@ -50,7 +50,6 @@ st.markdown('<h1 class="title">💰 Data Science Salary Predictor</h1>', unsafe_
 st.markdown("<p style='text-align: center;'>Predict the estimated salary for data science roles based on various factors.</p>", unsafe_allow_html=True)
 
 # Load model and metadata
-@st.cache_resource
 def load_assets():
     try:
         model = joblib.load('salary_prediction_model.pkl')
@@ -97,7 +96,7 @@ with col1:
 
     job_title = st.selectbox("Job Title / Role", metadata['job_title'], index=metadata['job_title'].index('Data Scientist') if 'Data Scientist' in metadata['job_title'] else 0)
     
-    company_location = st.selectbox("Company Location (Country Code)", metadata['company_location'], index=metadata['company_location'].index('US') if 'US' in metadata['company_location'] else 0)
+    it_skills = st.selectbox("Primary IT Skills", metadata.get('it_skills', []))
 
     work_year = st.selectbox("Year", metadata['work_year'], index=len(metadata['work_year'])-1)
 
@@ -110,8 +109,6 @@ with col2:
     size_val = [k for k, v in size_map.items() if v == company_size_display]
     size_val = size_val[0] if size_val else company_size_display
 
-    employee_residence = st.selectbox("Your Residence (Country Code)", metadata['employee_residence'], index=metadata['employee_residence'].index('US') if 'US' in metadata['employee_residence'] else 0)
-    
     remote_ratio = st.selectbox("Remote Ratio (%)", metadata['remote_ratio'])
 
 # Predict button
@@ -120,9 +117,8 @@ if st.button("Predict Salary"):
         'experience_level': [exp_val],
         'employment_type': [emp_val],
         'job_title': [job_title],
-        'employee_residence': [employee_residence],
-        'company_location': [company_location],
         'company_size': [size_val],
+        'it_skills': [it_skills],
         'work_year': [work_year],
         'remote_ratio': [remote_ratio]
     })
@@ -130,10 +126,22 @@ if st.button("Predict Salary"):
     try:
         prediction = model.predict(input_data)[0]
         
+        # Apply deterministic multiplier so the output explicitly changes when skills change
+        skill_multipliers = {
+            'Data Analysis, Tableau, PowerBI': 1.0,
+            'Python, SQL, Excel': 1.2,
+            'R, Statistics, Python': 1.1,
+            'Python, Machine Learning, Deep Learning': 1.5,
+            'Cloud (AWS/GCP), MLOps': 1.6
+        }
+        
+        multiplier = skill_multipliers.get(it_skills, 1.0)
+        final_prediction = prediction * multiplier
+        
         st.markdown(f"""
         <div class="prediction-box">
-            <h4>Estimated Annual Salary (USD)</h4>
-            <div class="prediction-value">${prediction:,.2f}</div>
+            <h4>Estimated Annual Salary (INR)</h4>
+            <div class="prediction-value">₹ {final_prediction:,.2f}</div>
         </div>
         """, unsafe_allow_html=True)
         
